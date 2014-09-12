@@ -1,0 +1,25 @@
+#!/bin/bash
+
+set -e
+set -o pipefail
+
+INSTALLER_DIR=${INSTALLER_DIR:="${APP_HOME}/.pkgr/installer"}
+echo "Launching installer for ${APP_NAME}..."
+
+echoerr() { echo "$@" 1>&2; }
+
+for_each_addon() {
+	for addon in ${ADDONS}; do
+		echoerr "[${addon}] $@"
+		( cd ${INSTALLER_DIR}/addons/${addon} && exec "$@" )
+	done
+}
+
+# execute configure scripts
+for_each_addon ./bin/configure
+
+# execute preinstall scripts
+for_each_addon ./bin/preinstall
+
+# execute postinstall scripts
+for_each_addon ./bin/postinstall
