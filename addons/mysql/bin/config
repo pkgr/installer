@@ -1,0 +1,248 @@
+#!/bin/bash -e
+
+APP_NAME="_APP_NAME_"
+APP_SAFE_NAME="_APP_SAFE_NAME_"
+
+# Source debconf library.
+. /usr/share/debconf/confmodule
+db_capb backup
+
+input_db_password() {
+  db_input "$1" ${APP_NAME}/mysql/db_password || true
+  db_get ${APP_NAME}/mysql/db_password
+  if [ "$RET" = "" ]; then
+    dbc_password=$(< /dev/urandom tr -dc A-Za-z0-9 | head -c32;echo;)
+    db_set ${APP_NAME}/mysql/db_password "$dbc_password"
+  fi
+}
+
+input_db_name() {
+  db_input "$1" ${APP_NAME}/mysql/db_name || true
+}
+
+input_db_username() {
+  db_input "$1" ${APP_NAME}/mysql/db_username || true
+}
+
+input_db_source_host() {
+  db_get ${APP_NAME}/mysql/db_host
+  dbc_host="$RET"
+
+  if [ "$dbc_host" = "127.0.0.1" ] || [ "$dbc_host" = "localhost" ]; then
+    db_set ${APP_NAME}/mysql/db_source_host "${dbc_host}"
+  else
+    db_set ${APP_NAME}/mysql/db_source_host "$(hostname -f)"
+  fi
+
+  db_input high ${APP_NAME}/mysql/db_source_host || true
+}
+
+input_db_host() {
+  db_input high ${APP_NAME}/mysql/db_host || true
+}
+
+input_db_port() {
+  db_input high ${APP_NAME}/mysql/db_port || true
+}
+
+wizard_ssl() {
+  local state=1;
+  db_input high ${APP_NAME}/mysql/ssl || true
+  db_go
+  db_get ${APP_NAME}/mysql/ssl
+  if [ "$RET" = "true" ]; then
+    while [ "$state" != 0 -a "$state" != 4 ]; do
+      case "$state" in
+        1)
+          db_input high ${APP_NAME}/mysql/ssl_cert || true ;;
+        2)
+          db_input high ${APP_NAME}/mysql/ssl_key || true ;;
+        3)
+          db_input high ${APP_NAME}/mysql/ssl_ca || true ;;
+      esac
+      if db_go; then
+        state=$(($state + 1))
+      else
+        state=$(($state - 1))
+      fi
+    done
+  fi
+}
+
+input_installation_type() {
+  db_input high ${APP_NAME}/mysql/autoinstall || true
+  db_go
+  db_get ${APP_NAME}/mysql/autoinstall
+  autoinstall="$RET"
+
+  if [ "$autoinstall" = "skip" ]; then
+    exit 0
+  fi
+}
+
+
+wizard() {
+  input_installation_type
+
+  local state=$(if [ -z "$1" ]; then echo 1; else echo "$1"; fi)
+  if [ "$autoinstall" = "use an existing database" ]; then 
+    while [ "$state" != 0 -a "$state" != 7 ]; do
+      case "$state" in
+        1)
+          input_db_host ;;
+        2)
+          input_db_port ;;
+        3) 
+          input_db_username "high" ;;
+        4)
+          input_db_password "high" ;;
+        5)
+          input_db_name "high" ;;
+        6)
+          input_db_source_host ;;
+      esac
+      if db_go; then
+        state=$(($state + 1))
+      else
+        state=$(($state - 1))
+      fi
+    done
+
+  else
+    while [ "$state" != 0 -a "$state" != 9 ]; do
+      case "$state" in
+        1)
+          input_db_host
+        ;;
+
+        2)
+          input_db_port
+        ;;
+
+        3)
+          db_input high ${APP_NAME}/mysql/admin_username || true
+        ;;
+
+        4)
+          db_input high ${APP_NAME}/mysql/admin_password || true
+        ;;
+
+        5)
+          input_db_username "medium"
+        ;;
+
+        6)
+          input_db_password "medium"
+        ;;
+
+        7)
+          input_db_name "medium"
+        ;;
+
+        8)
+          input_db_source_host
+        ;;
+      esac
+
+      if db_go; then
+        state=$(($state + 1))
+      else
+        state=$(($state - 1))
+      fi
+    done
+  fi
+
+  # Re-display full wizard from start if we're at state 0
+  if [ "$state" == 0 ]; then
+    wizard
+  else
+    wizard_ssl
+    # only check if mysql-client is already installed, which is not the case in preconfigure state
+    if which mysql &>/dev/null; then
+      check
+    fi
+  fi
+}
+
+generate_mysql_defaults_file() {
+  db_get ${APP_NAME}/mysql/${1}
+  local dbc_host="$RET"
+  db_get ${APP_NAME}/mysql/${2}
+  local dbc_port="$RET"
+  db_get ${APP_NAME}/mysql/${3}
+  local dbc_username="$RET"
+  db_get ${APP_NAME}/mysql/${4}
+  local dbc_password="$RET"
+
+  db_get ${APP_NAME}/mysql/ssl
+  local dbc_ssl="$RET"
+  db_get ${APP_NAME}/mysql/ssl_ca
+  local dbc_ssl_ca="$RET"
+  db_get ${APP_NAME}/mysql/ssl_cert
+  local dbc_ssl_cert="$RET"
+  db_get ${APP_NAME}/mysql/ssl_key
+  local dbc_ssl_key="$RET"
+
+  local tmpfile=$(mktemp)
+  cat > $tmpfile <<CONFIG
+[client]
+password="${dbc_password}"
+user="${dbc_username}"
+host="${dbc_host}"
+port="${dbc_port}"
+CONFIG
+
+  if [ "$dbc_ssl" = "true" ]; then
+    cat >> $tmpfile <<CONFIG
+ssl-ca="${dbc_ssl_ca}"
+ssl-cert="${dbc_ssl_cert}"
+ssl-key="${dbc_ssl_key}"
+CONFIG
+  fi
+
+  echo $tmpfile
+}
+
+check() {
+  if [ "$autoinstall" = "use an existing database" ]; then
+    local tmpfile=$(generate_mysql_defaults_file "db_host" "db_port" "db_username" "db_password")
+  else
+    local tmpfile=$(generate_mysql_defaults_file "db_host" "db_port" "admin_username" "admin_password")
+  fi
+
+  set +e
+  test_connection=$(mysql --defaults-file="$tmpfile" -e "DO 0;")
+  test_status=$?
+  set -e
+
+  rm -f "$tmpfile"
+
+  if [ $test_status -eq 0 ]; then
+    echo "MySQL connection OK"
+  else
+    echo "$test_connection"
+    db_fset ${APP_NAME}/mysql/retry seen false
+    db_input high ${APP_NAME}/mysql/retry || true
+    if db_go; then
+      db_get ${APP_NAME}/mysql/retry || true
+      if [ "$RET" = "retry" ]; then
+        for var in "db_host" "db_source_host" "db_port" "admin_username" "admin_password" "db_name" "db_username" "db_password"; do
+          db_fset ${APP_NAME}/mysql/${var} seen false
+        done
+        wizard
+      else
+        if [ "$RET" = "ignore" ]; then
+          echo "MySQL configuration failed. Ignoring."
+        else
+          echo "MySQL configuration failed. Aborting."
+          exit 1
+        fi
+      fi
+    else
+      echo "MySQL configuration failed. Aborting."
+      exit 1
+    fi
+  fi
+}
+
+wizard

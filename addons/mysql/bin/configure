@@ -1,0 +1,61 @@
+#!/bin/bash
+
+echo "Configuring"
+echo $APP_NAME
+echo $INSTALLER_DIR
+
+. "${INSTALLER_DIR}/wizard"
+
+input_start() {
+	if ask "mysql/autoinstall" ; then
+		RET=$(get "mysql/autoinstall")
+		echo $RET
+		case "$RET" in
+			"skip")
+				STATE="done"
+				;;
+			"install")
+				STATE="done"
+				;;
+			"use-existing-database")
+				STATE="mysql_params"
+				;;
+			"create-new-database")
+				STATE="mysql_params"
+				;;
+		esac
+	else
+		STATE="done"
+	fi
+}
+
+input_mysql_params() {
+	echo "input connection infos"
+	STATE="done"
+}
+
+state_machine() {
+	case "$STATE" in
+		"start")
+			input_start
+			;;
+		"mysql_params")
+			input_mysql_params
+			;;
+		"super_user_params")
+			input_super_user_params
+			;;
+		"existing_user_params")
+			input_existing_user_params
+			;;
+		"done")
+			break
+			;;
+		*)
+			echo "invalid state ${STATE}"
+			break
+			;;
+	esac
+}
+
+wizard "start"

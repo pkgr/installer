@@ -6,6 +6,7 @@ set -o pipefail
 export INSTALLER_DIR=${INSTALLER_DIR:="${APP_HOME}/.pkgr/installer"}
 export DIALOG=${DIALOG:="dialog"}
 export DIALOGRC="${INSTALLER_DIR}/debian.rc"
+export CLI="${APP_NAME}"
 
 echo "Launching installer for ${APP_NAME}..."
 

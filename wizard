@@ -1,0 +1,99 @@
+#!/bin/bash
+
+: ${DIALOG=dialog}
+
+: ${DIALOG_OK=0}
+: ${DIALOG_CANCEL=1}
+: ${DIALOG_HELP=2}
+: ${DIALOG_EXTRA=3}
+: ${DIALOG_ITEM_HELP=4}
+: ${DIALOG_ESC=255}
+
+: ${SIG_NONE=0}
+: ${SIG_HUP=1}
+: ${SIG_INT=2}
+: ${SIG_QUIT=3}
+: ${SIG_KILL=9}
+: ${SIG_TERM=15}
+
+set -e
+
+DATABASE="${INSTALLER_DIR}/database"
+touch "${DATABASE}"
+
+wizard() {
+	STATE="$1"
+	while true; do
+		OLDSTATE="$STATE"
+		state_machine
+		if [ "$OLDSTATE" = "$STATE" ]; then
+			STATE="same-state"
+		fi
+	done
+}
+
+template() {
+	local key="$1"
+	local type="$2"
+	case "$key" in
+		"mysql/autoinstall")
+			echo "menu"
+			;;
+	esac
+}
+
+store() {
+	local key="$1"
+	local value="$2"
+	sed -i "s|${key}=.*||" "$DATABASE"
+	echo "${key}=${value}" >> "$DATABASE"
+}
+
+ask() {
+	set +e
+	local key="$1"
+	echo "key: $key"
+	echo $(template "$key" "type")
+	case $(template "$key" "type") in
+		"menu")
+			result=$($DIALOG --stdout --clear --title "MENU BOX" \
+        --menu "Hi, this is a menu box. You can use this to \n\
+present a list of choices for the user to \n\
+choose. If there are more items than can fit \n\
+on the screen, the menu will be scrolled. \n\
+You can use the UP/DOWN arrow keys, the first \n\
+letter of the choice as a hot key, or the \n\
+number keys 1-9 to choose an option.\n\
+Try it now!\n\n\
+          Choose the OS you like:" 20 51 4 \
+        "skip"  "The Great Unix Clone for 386/486" \
+        "install" "Another free Unix Clone for 386/486" \
+        "use-existing-database" "IBM OS/2" \
+        "WIN NT" "Microsoft Windows NT" \
+        "PCDOS"  "IBM PC DOS" \
+	"MSDOS"  "Microsoft DOS")
+			case $? in
+				$DIALOG_OK)
+					store "$key" "$result"
+					;;
+				*)
+					exit $?
+					;;
+			esac
+			;;
+		"boolean")
+			if $DIALOG --title "mysql / setup" --clear \
+				--yesno "Do you want to install MySQL?" 15 61 ; then
+				store "$key" "true"
+			else
+				store "$key" "false"
+			fi
+			;;
+	esac
+	set -e
+}
+
+get() {
+	local key="$1"
+	grep "$key=" "$DATABASE" | cut -f 2 -d "="
+}
