@@ -3,7 +3,10 @@
 set -e
 set -o pipefail
 
-INSTALLER_DIR=${INSTALLER_DIR:="${APP_HOME}/.pkgr/installer"}
+export INSTALLER_DIR=${INSTALLER_DIR:="${APP_HOME}/.pkgr/installer"}
+export DIALOG=${DIALOG:="dialog"}
+export DIALOGRC="${INSTALLER_DIR}/debian.rc"
+
 echo "Launching installer for ${APP_NAME}..."
 
 echoerr() { echo "$@" 1>&2; }
