@@ -67,9 +67,27 @@ input_mysql_params_source() {
 
 	wiz_put "mysql/db_source_host"
 	if wiz_ask ; then
-		STATE="check"
+		STATE="mysql_params_ssl"
 	else
 		STATE="mysql_params_user"
+	fi
+}
+
+input_mysql_params_ssl() {
+	wiz_put "mysql/ssl"
+	if wiz_ask ; then
+		if [ "$(wiz_get "mysql/ssl")" = "true" ] ; then
+			wiz_put "mysql/ssl_cert"
+			wiz_put "mysql/ssl_key"
+			wiz_put "mysql/ssl_ca"
+			if ! wiz_ask ; then
+				STATE="mysql_params_source"
+				return
+			fi
+		fi
+		STATE="check"
+	else
+		STATE="mysql_params_source"
 	fi
 }
 
@@ -109,16 +127,10 @@ input_check() {
 	trap "rm -f $tmpfile" EXIT
 
 	wiz_debug "$tmpfile"
-	set +e
-	test_connection=$(mysql --defaults-file="$tmpfile" -e "DO 0;" 2>&1)
-	test_status=$?
-	set -e
 
-	rm -f "$tmpfile"
-	if [ $test_status -eq 0 ]; then
+	if mysql --defaults-file="$tmpfile" -e "DO 0;" ; then
 		echo "MySQL connection OK"
 	else
-		echo "$test_connection"
 		wiz_put "mysql/retry"
 		if wiz_ask ; then
 			case "$(wiz_get "mysql/retry")" in
@@ -154,6 +166,9 @@ state_machine() {
 			;;
 		"mysql_params_source")
 			input_mysql_params_source
+			;;
+		"mysql_params_ssl")
+			input_mysql_params_ssl
 			;;
 		"check")
 			input_check
