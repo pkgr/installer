@@ -23,7 +23,7 @@ DATABASE="${INSTALLER_DIR}/database"
 touch "${DATABASE}"
 INSTALLER_DEBUG=${INSTALLER_DEBUG:="no"}
 
-debug() {
+wiz_debug() {
 	if [ ! "${INSTALLER_DEBUG}" = "no" ]; then
 		echo "[debug] $1" >&2
 	fi
@@ -32,8 +32,9 @@ debug() {
 wizard() {
 	STATE="$1"
 	while true; do
+		wiz_debug "STATE=$STATE OLDSTATE=$OLDSTATE"
 		OLDSTATE="$STATE"
-		state_machine
+		state_machine "$STATE"
 		if [ "$OLDSTATE" = "$STATE" ]; then
 			STATE="same-state"
 		fi
@@ -49,12 +50,17 @@ wiz_set() {
 
 wiz_ask() {
 	for question in $wiz_buffer ; do
-		wiz_dialog "$question"
+		wiz_debug "wiz_ask: ${question}"
+		if ! wiz_dialog "$question" ; then
+			wiz_clear
+			return 1;
+		fi
 	done
 	wiz_clear
 }
 
 wiz_clear() {
+	wiz_debug "CLEAR"
 	wiz_buffer=""
 }
 
@@ -65,28 +71,27 @@ wiz_dialog() {
 	local description=$(wiz_meta "$key" "description")
 	local default=$(wiz_get "$key" || wiz_meta "$key" "default")
 
-	debug "key=$key type=${kind} default=${default} title=${title} description=${description}"
+	wiz_debug "key=$key type=${kind} default=${default} title=${title} description=${description}"
 
-	set +e
 	case "$kind" in
 		"select")
 			local choices=$(wiz_meta "$key" "choices")
 			local cmd="$DIALOG --stdout --clear --title \"$key\" --default-item \"${default}\" --menu \"$description\n\n$title\" 20 68 4 $choices"
-			debug "cmd=${cmd}"
+			wiz_debug "cmd=${cmd}"
 			result=$(eval $cmd)
 			status=$?
 			;;
 
 		"string")
 			local cmd="$DIALOG --stdout --clear --title \"$key\" --inputbox \"$description\n\n$title\" 16 51 \"${default}\""
-			debug "cmd=${cmd}"
+			wiz_debug "cmd=${cmd}"
 			result=$(eval $cmd)
 			status=$?
 			;;
 
 		"password")
 			local cmd="$DIALOG --stdout --clear --title \"$key\" --insecure --passwordbox \"$description\n\n$title\" 16 51"
-			debug "cmd=${cmd}"
+			wiz_debug "cmd=${cmd}"
 			result=$(eval $cmd)
 			status=$?
 			# defaults to existing password if none given
@@ -102,21 +107,22 @@ wiz_dialog() {
 			else
 				result="false"
 			fi
-			status=0
+			status=${DIALOG_OK}
 			;;
 		*)
 			echo "unknown dialog type: ${kind}"
-			exit 1
+			return 1
 			;;
 	esac
-	set -e
 
 	case $status in
 		$DIALOG_OK)
 			wiz_set "$key" "$result"
+			return 0
 			;;
 		*)
-			exit $status
+			echo "NOT OK"
+			return 1
 			;;
 	esac
 }
@@ -129,8 +135,8 @@ wiz_template() {
 wiz_meta() {
 	local key="$1"
 	local attribute="$2"
-	debug "key: $key"
-	debug "attribute: ${attribute}"
+	wiz_debug "key: $key"
+	wiz_debug "attribute: ${attribute}"
 	IFS='/' read -a array <<< "$key"
 	local addon="${array[0]}"
 	local tmpdir=$(mktemp -d)
