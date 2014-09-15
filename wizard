@@ -42,14 +42,88 @@ template() {
 	esac
 }
 
-store() {
+wiz_set() {
 	local key="$1"
 	local value="$2"
 	sed -i "s|${key}=.*||" "$DATABASE"
 	echo "${key}=${value}" >> "$DATABASE"
 }
 
-ask() {
+wiz_ask() {
+	for question in $wiz_buffer ; do
+		wiz_dialog "$question"
+	done
+}
+
+wiz_dialog() {
+	local key="$1"
+	local type=$(wiz_meta "$key" "type")
+	local title=$(wiz_meta "$key" "title")
+	local description=$(wiz_meta "$key" "$description")
+	case "$type" in
+		"menu")
+			local choices=$(wiz_meta "$key" "choices")
+			wiz_dialog_menu "$key" "$title" "$description" "$choices"
+			;;
+		"boolean")
+			wiz_dialog_boolean "$key" "$title" "$description"
+			;;
+	esac
+}
+
+wiz_template() {
+	echo "${INSTALLER_DIR}/addons/${1}/templates"
+}
+
+wiz_meta() {
+	local key="$1"
+	local attribute="$2"
+	IFS='/' read -a array <<< "$key"
+	local addon="${array[0]}"
+	local tmpdir=$(mktemp -d)
+	local addon_templates=$(wiz_template "${addon}")
+	csplit -zs -f ${tmpdir}/item "$addon_templates" /^Template:/ {*}
+	local template=""
+	for file in ${tmpdir}/item* ; do
+		if grep -q "Template: ${key}" ${file} ; then
+			template="$file"
+			break
+		fi
+	done
+
+	if [ -z "$template" ] ; then exit 1 ; fi
+
+	case "$attribute" in
+		"type")
+			sed -n -r 's|^Type: (.+)$|\1|p' "$template"
+			;;
+		"title")
+			sed -n -r 's|^Description: (.+)$|\1|p' "$template"
+			;;
+		"default")
+			sed -n -r 's|^Default: (.+)$|\1|p' "$template"
+			;;
+		"description")
+			local description=$(grep -e "^\s" "$template" | xargs echo | sed -n -r "s| \. |\n|p")
+			echo "$description"
+			;;
+		"choices")
+			IFS=',' read -a choices <<< "$(sed -n -r 's|^Choices: (.+)$|\1|p' "$template" | sed -n -r 's|, |,|pg')"
+			IFS=',' read -a translations <<< "$(sed -n -r 's|^Translations: (.+)$|\1|p' "$template" | sed -n -r 's|, |,|pg')"
+
+			if [ -z "$translations" ]; then translations=$choices ; fi
+
+			for ((i=0 ; i < ${#choices[@]}; i++)) ; do
+				echo "\"${choices[$i]}\" \"${translations[$i]}\""
+			done
+			;;
+		*)
+			echo ""
+			;;
+	esac
+}
+
+wiz_put() {
 	set +e
 	local key="$1"
 	echo "key: $key"
@@ -74,7 +148,7 @@ Try it now!\n\n\
 	"MSDOS"  "Microsoft DOS")
 			case $? in
 				$DIALOG_OK)
-					store "$key" "$result"
+					wiz_set "$key" "$result"
 					;;
 				*)
 					exit $?
@@ -84,16 +158,16 @@ Try it now!\n\n\
 		"boolean")
 			if $DIALOG --title "mysql / setup" --clear \
 				--yesno "Do you want to install MySQL?" 15 61 ; then
-				store "$key" "true"
+				wiz_set "$key" "true"
 			else
-				store "$key" "false"
+				wiz_set "$key" "false"
 			fi
 			;;
 	esac
 	set -e
 }
 
-get() {
+wiz_get() {
 	local key="$1"
 	grep "$key=" "$DATABASE" | cut -f 2 -d "="
 }

@@ -7,8 +7,11 @@ echo $INSTALLER_DIR
 . "${INSTALLER_DIR}/wizard"
 
 input_start() {
-	if ask "mysql/autoinstall" ; then
-		RET=$(get "mysql/autoinstall")
+	# returns an error only if key can't be found
+	wiz_put "mysql/autoinstall"
+	# is true when user clicked OK, or false if user clicked CANCEL, ESC, etc.
+	if wiz_ask ; then
+		RET=$(wiz_get "mysql/autoinstall")
 		echo $RET
 		case "$RET" in
 			"skip")
