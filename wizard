@@ -18,8 +18,16 @@
 
 set -e
 
+wiz_buffer=""
 DATABASE="${INSTALLER_DIR}/database"
 touch "${DATABASE}"
+INSTALLER_DEBUG=${INSTALLER_DEBUG:="no"}
+
+debug() {
+	if [ ! "${INSTALLER_DEBUG}" = "no" ]; then
+		echo "[debug] $1" >&2
+	fi
+}
 
 wizard() {
 	STATE="$1"
@@ -30,16 +38,6 @@ wizard() {
 			STATE="same-state"
 		fi
 	done
-}
-
-template() {
-	local key="$1"
-	local type="$2"
-	case "$key" in
-		"mysql/autoinstall")
-			echo "menu"
-			;;
-	esac
 }
 
 wiz_set() {
@@ -57,20 +55,47 @@ wiz_ask() {
 
 wiz_dialog() {
 	local key="$1"
-	local type=$(wiz_meta "$key" "type")
+	local kind=$(wiz_meta "$key" "type")
 	local title=$(wiz_meta "$key" "title")
-	local description=$(wiz_meta "$key" "$description")
-	case "$type" in
-		"menu")
+	local description=$(wiz_meta "$key" "description")
+	local default=$(wiz_get "$key" || wiz_meta "$key" "default")
+
+	debug "key=$key type=${kind} default=${default} title=${title} description=${description}"
+
+	set +e
+	case "$kind" in
+		"select")
 			local choices=$(wiz_meta "$key" "choices")
-			wiz_dialog_menu "$key" "$title" "$description" "$choices"
+			debug "choices:${choices}"
+			local cmd="$DIALOG --stdout --clear --title \"$key\" --default-item \"${default}\" --menu \"$description\n\n$title\" 20 68 4 $choices"
+			result=$(eval $cmd)
+			status=$?
+			case $status in
+				$DIALOG_OK)
+					wiz_set "$key" "$result"
+					;;
+				*)
+					exit $status
+					;;
+			esac
 			;;
 		"boolean")
-			wiz_dialog_boolean "$key" "$title" "$description"
+			if $DIALOG --title "$key" --clear \
+				--yesno "$description\n\n$title" 15 61 ; then
+				wiz_set "$key" "true"
+			else
+				wiz_set "$key" "false"
+			fi
+			;;
+		*)
+			echo "unknown dialog type: ${kind}"
+			exit 1
 			;;
 	esac
+	set -e
 }
 
+# Given a configuration key, it returns the path to the template file
 wiz_template() {
 	echo "${INSTALLER_DIR}/addons/${1}/templates"
 }
@@ -78,10 +103,13 @@ wiz_template() {
 wiz_meta() {
 	local key="$1"
 	local attribute="$2"
+	debug "key: $key"
+	debug "attribute: ${attribute}"
 	IFS='/' read -a array <<< "$key"
 	local addon="${array[0]}"
 	local tmpdir=$(mktemp -d)
 	local addon_templates=$(wiz_template "${addon}")
+
 	csplit -zs -f ${tmpdir}/item "$addon_templates" /^Template:/ {*}
 	local template=""
 	for file in ${tmpdir}/item* ; do
@@ -111,11 +139,12 @@ wiz_meta() {
 			IFS=',' read -a choices <<< "$(sed -n -r 's|^Choices: (.+)$|\1|p' "$template" | sed -n -r 's|, |,|pg')"
 			IFS=',' read -a translations <<< "$(sed -n -r 's|^Translations: (.+)$|\1|p' "$template" | sed -n -r 's|, |,|pg')"
 
-			if [ -z "$translations" ]; then translations=$choices ; fi
-
+			local result=""
 			for ((i=0 ; i < ${#choices[@]}; i++)) ; do
-				echo "\"${choices[$i]}\" \"${translations[$i]}\""
+				local i18n=$(if [ -z "${translations[$i]}" ]; then echo "${choices[$i]}" ; else echo "${translations[$i]}" ; fi)
+				result="${result} \"${choices[$i]}\" \"${i18n}\""
 			done
+			echo $result
 			;;
 		*)
 			echo ""
@@ -124,47 +153,7 @@ wiz_meta() {
 }
 
 wiz_put() {
-	set +e
-	local key="$1"
-	echo "key: $key"
-	echo $(template "$key" "type")
-	case $(template "$key" "type") in
-		"menu")
-			result=$($DIALOG --stdout --clear --title "MENU BOX" \
-        --menu "Hi, this is a menu box. You can use this to \n\
-present a list of choices for the user to \n\
-choose. If there are more items than can fit \n\
-on the screen, the menu will be scrolled. \n\
-You can use the UP/DOWN arrow keys, the first \n\
-letter of the choice as a hot key, or the \n\
-number keys 1-9 to choose an option.\n\
-Try it now!\n\n\
-          Choose the OS you like:" 20 51 4 \
-        "skip"  "The Great Unix Clone for 386/486" \
-        "install" "Another free Unix Clone for 386/486" \
-        "use-existing-database" "IBM OS/2" \
-        "WIN NT" "Microsoft Windows NT" \
-        "PCDOS"  "IBM PC DOS" \
-	"MSDOS"  "Microsoft DOS")
-			case $? in
-				$DIALOG_OK)
-					wiz_set "$key" "$result"
-					;;
-				*)
-					exit $?
-					;;
-			esac
-			;;
-		"boolean")
-			if $DIALOG --title "mysql / setup" --clear \
-				--yesno "Do you want to install MySQL?" 15 61 ; then
-				wiz_set "$key" "true"
-			else
-				wiz_set "$key" "false"
-			fi
-			;;
-	esac
-	set -e
+	wiz_buffer="$wiz_buffer $1"
 }
 
 wiz_get() {
