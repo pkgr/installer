@@ -121,7 +121,6 @@ wiz_dialog() {
 			return 0
 			;;
 		*)
-			echo "NOT OK"
 			return 1
 			;;
 	esac
