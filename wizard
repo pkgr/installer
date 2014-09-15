@@ -51,6 +51,11 @@ wiz_ask() {
 	for question in $wiz_buffer ; do
 		wiz_dialog "$question"
 	done
+	wiz_clear
+}
+
+wiz_clear() {
+	wiz_buffer=""
 }
 
 wiz_dialog() {
@@ -66,26 +71,38 @@ wiz_dialog() {
 	case "$kind" in
 		"select")
 			local choices=$(wiz_meta "$key" "choices")
-			debug "choices:${choices}"
 			local cmd="$DIALOG --stdout --clear --title \"$key\" --default-item \"${default}\" --menu \"$description\n\n$title\" 20 68 4 $choices"
+			debug "cmd=${cmd}"
 			result=$(eval $cmd)
 			status=$?
-			case $status in
-				$DIALOG_OK)
-					wiz_set "$key" "$result"
-					;;
-				*)
-					exit $status
-					;;
-			esac
 			;;
-		"boolean")
-			if $DIALOG --title "$key" --clear \
-				--yesno "$description\n\n$title" 15 61 ; then
-				wiz_set "$key" "true"
-			else
-				wiz_set "$key" "false"
+
+		"string")
+			local cmd="$DIALOG --stdout --clear --title \"$key\" --inputbox \"$description\n\n$title\" 16 51 \"${default}\""
+			debug "cmd=${cmd}"
+			result=$(eval $cmd)
+			status=$?
+			;;
+
+		"password")
+			local cmd="$DIALOG --stdout --clear --title \"$key\" --insecure --passwordbox \"$description\n\n$title\" 16 51"
+			debug "cmd=${cmd}"
+			result=$(eval $cmd)
+			status=$?
+			# defaults to existing password if none given
+			if [ $status -eq 0 ] && [ "$result" = "" ]; then
+				result="$default"
 			fi
+			;;
+
+		"boolean")
+			if $DIALOG --title "$key" --clear $([ "$default" = "true" ] || echo "--defaultno") \
+				--yesno "$description\n\n$title" 15 61 ; then
+				result="true"
+			else
+				result="false"
+			fi
+			status=0
 			;;
 		*)
 			echo "unknown dialog type: ${kind}"
@@ -93,6 +110,15 @@ wiz_dialog() {
 			;;
 	esac
 	set -e
+
+	case $status in
+		$DIALOG_OK)
+			wiz_set "$key" "$result"
+			;;
+		*)
+			exit $status
+			;;
+	esac
 }
 
 # Given a configuration key, it returns the path to the template file

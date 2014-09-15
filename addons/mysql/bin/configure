@@ -20,10 +20,7 @@ input_start() {
 			"install")
 				STATE="done"
 				;;
-			"use-existing-database")
-				STATE="mysql_params"
-				;;
-			"create-new-database")
+			"reuse")
 				STATE="mysql_params"
 				;;
 		esac
@@ -34,7 +31,24 @@ input_start() {
 
 input_mysql_params() {
 	echo "input connection infos"
-	STATE="done"
+	wiz_put "mysql/db_host"
+	wiz_put "mysql/db_port"
+
+	local dbc_host=$(wiz_get "mysql/db_host")
+	if [ "$dbc_host" = "127.0.0.1" ] || [ "$dbc_host" = "localhost" ]; then
+		wiz_set "mysql/db_source_host" "${dbc_host}"
+	else
+		wiz_set "mysql/db_source_host" "$(hostname -f)"
+	fi
+	wiz_put "mysql/db_source_host"
+	wiz_put "mysql/db_username"
+	wiz_put "mysql/db_password"
+
+	if wiz_ask ; then
+		STATE="done"
+	else
+		STATE="start"
+	fi
 }
 
 state_machine() {
