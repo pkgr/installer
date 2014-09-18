@@ -20,11 +20,22 @@ input_start() {
 				;;
 			"install")
 				STATE="done"
+				wiz_set "mysql/db_host" "127.0.0.1"
+				wiz_set "mysql/db_port" "3306"
+				wiz_set "mysql/db_username" "${APP_SAFE_NAME:0:16}"
+				wiz_set "mysql/db_password" "$(wiz_random_password 32)"
+				wiz_set "mysql/db_source_host" "127.0.0.1"
+				wiz_set "mysql/ssl" "false"
 				;;
 			"reuse")
-				if ! which mysql &>/dev/null && which apt-get &>/dev/null ; then
-					apt-get install mysql-client -y --force-yes -qq
-				fi
+				case $(wiz_fact "osfamily") in
+					"debian")
+						wiz_check_package "mysql-client" || wiz_install_deb "mysql-client"
+						;;
+					"redhat")
+						wiz_check_package "mysql" || wiz_install_rpm "mysql"
+						;;
+				esac
 				STATE="mysql_params_host"
 				;;
 		esac

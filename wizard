@@ -41,6 +41,11 @@ wizard() {
 	done
 }
 
+wiz_random_password() {
+	local size=${1:=32}
+	echo $(< /dev/urandom tr -dc A-Za-z0-9 | head -c${size};echo;)
+}
+
 wiz_set() {
 	local key="$1"
 	local value="$2"
@@ -190,4 +195,63 @@ wiz_put() {
 wiz_get() {
 	local key="$1"
 	grep "$key=" "$DATABASE" | cut -f 2 -d "="
+}
+
+wiz_install_deb() {
+	local package="$1"
+	apt-get install "$package" -y --force-yes -qq
+}
+
+wiz_install_rpm() {
+	local package="$1"
+	yum install -y -q "$package"
+}
+
+wiz_install() {
+	local what="$1"
+
+	# return early if command already exists
+	if which "$what" &>/dev/null ; then
+		return 0
+	fi
+
+	case $(wiz_fact "osfamily") in
+		"debian")
+			wiz_install_deb "$what" ;;
+		"redhat")
+			wiz_install_debb "$what" ;;
+		*)
+			echo "Don't know how to install $what on this distribution" ;;
+	esac
+}
+
+wiz_check_package() {
+	case $(wiz_fact "osfamily") in
+		"debian")
+			dpkg -s "$1" &>/dev/null
+			;;
+		"redhat")
+			rpm -qa "$1" | grep -q "$1"
+			;;
+		*)
+			return 1
+			;;
+	esac
+}
+
+wiz_fact() {
+	local key="$1"
+	case "$key" in
+		"osfamily")
+			if [ -f /etc/debian_version ]; then
+				echo "debian"
+			elif [ -f /etc/redhat-release ]; then
+				echo "redhat"
+			fi
+			;;
+	esac
+}
+
+wiz_join() {
+  local IFS="$1"; shift; echo "$*";
 }

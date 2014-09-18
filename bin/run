@@ -3,9 +3,15 @@
 set -e
 set -o pipefail
 
+${APP_NAME:?"Needs to set APP_NAME"}
+${APP_HOME:?"Needs to set APP_HOME"}
+${APP_SAFE_NAME:?"Needs to set APP_SAFE_NAME"}
+${APP_USER:?"Needs to set APP_USER"}
+${APP_GROUP:?"Needs to set APP_GROUP"}
+
 export INSTALLER_DIR=${INSTALLER_DIR:="${APP_HOME}/.pkgr/installer"}
 export DIALOG=${DIALOG:="dialog"}
-export DIALOGRC="${INSTALLER_DIR}/debian.rc"
+#export DIALOGRC="${INSTALLER_DIR}/debian.rc"
 export CLI="${APP_NAME}"
 
 echo "Launching installer for ${APP_NAME}..."
