@@ -17,6 +17,7 @@
 : ${SIG_TERM=15}
 
 set -e
+set -o pipefail
 
 wiz_buffer=""
 DATABASE="${INSTALLER_DIR}/database"

@@ -3,11 +3,11 @@
 set -e
 set -o pipefail
 
-${APP_NAME:?"Needs to set APP_NAME"}
-${APP_HOME:?"Needs to set APP_HOME"}
-${APP_SAFE_NAME:?"Needs to set APP_SAFE_NAME"}
-${APP_USER:?"Needs to set APP_USER"}
-${APP_GROUP:?"Needs to set APP_GROUP"}
+: ${APP_NAME:?"Needs to set APP_NAME"}
+: ${APP_HOME:?"Needs to set APP_HOME"}
+: ${APP_SAFE_NAME:?"Needs to set APP_SAFE_NAME"}
+: ${APP_USER:?"Needs to set APP_USER"}
+: ${APP_GROUP:?"Needs to set APP_GROUP"}
 
 export INSTALLER_DIR=${INSTALLER_DIR:="${APP_HOME}/.pkgr/installer"}
 export DIALOG=${DIALOG:="dialog"}
@@ -24,6 +24,12 @@ for_each_addon() {
 		( cd ${INSTALLER_DIR}/addons/${addon} && exec "$@" )
 	done
 }
+
+# create various dirs directory
+REQUIRED_DIRS="/etc/${APP_NAME}/conf.d /etc/${APP_NAME}/addons"
+for dir in $REQUIRED_DIRS ; do
+	mkdir -p "$dir" && chown ${APP_USER}.${APP_GROUP} "$dir"
+done
 
 # execute configure scripts
 for_each_addon ./bin/configure

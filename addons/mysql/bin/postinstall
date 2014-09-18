@@ -1,6 +1,9 @@
 #!/bin/bash
 
-echo "postinstall"
+set -e
+set -x
+
+. "${INSTALLER_DIR}/wizard"
 
 create_database() {
 	local root_password=$(wiz_get "mysql/root_password")
@@ -9,13 +12,13 @@ create_database() {
 	local dbc_username=$(wiz_get "mysql/db_username")
 	local dbc_password=$(wiz_get "mysql/db_password")
 	local dbc_name=$(wiz_get "mysql/db_name")
-	local dbc_source_host=$(wiz_get "mysql/db_source_host")_
+	local dbc_source_host=$(wiz_get "mysql/db_source_host")
 
 	if [ -z "$root_password" ] ; then
 		echo "Can't find the root password to create the MySQL database"
 		exit 1
 	else
-		cat - | mysql -uroot -p${root_password} <<MYSQL
+		cat <<MYSQL | mysql -uroot -p${root_password}
 CREATE DATABASE IF NOT EXISTS \`${dbc_name}\` CHARACTER SET utf8;
 GRANT USAGE ON *.* TO '${dbc_username}'@'${dbc_source_host}' IDENTIFIED BY '${dbc_password}';
 GRANT ALL PRIVILEGES ON \`${dbc_name}\`.* TO '${dbc_username}'@'${dbc_source_host}';
@@ -90,7 +93,6 @@ case "$(wiz_get "mysql/autoinstall")" in
 		generate_database_template
 		;;
 	"install")
-		install_mysql_server
 		create_database
 		generate_database_template
 		;;
