@@ -23,6 +23,7 @@ wiz_buffer=""
 DATABASE="${INSTALLER_DIR}/database"
 touch "${DATABASE}"
 INSTALLER_DEBUG=${INSTALLER_DEBUG:="no"}
+CURRENT_ADDON="$(dirname "$(cd "$(dirname "$0")" ; pwd)")"
 
 wiz_debug() {
 	if [ ! "${INSTALLER_DEBUG}" = "no" ]; then
@@ -82,7 +83,7 @@ wiz_dialog() {
 	case "$kind" in
 		"select")
 			local choices=$(wiz_meta "$key" "choices")
-			local cmd="$DIALOG --stdout --clear --title \"$key\" --default-item \"${default}\" --menu \"$description\n\n$title\" 20 68 4 $choices"
+			local cmd="$DIALOG --stdout --no-tags --clear --title \"$key\" --default-item \"${default}\" --menu \"$description\n\n$title\" 0 0 4 $choices"
 			wiz_debug "cmd=${cmd}"
 			result=$(eval $cmd)
 			status=$?
@@ -134,7 +135,7 @@ wiz_dialog() {
 
 # Given a configuration key, it returns the path to the template file
 wiz_template() {
-	echo "${INSTALLER_DIR}/addons/${1}/templates"
+	echo "${CURRENT_ADDON}/templates"
 }
 
 wiz_meta() {
