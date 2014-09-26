@@ -22,6 +22,13 @@ input_start() {
 }
 
 input_server_params() {
+	local default_hostname=$(hostname -f 2>/dev/null || hostname || echo "example.com")
+
+	if ! wiz_get "server/hostname" ; then
+		wiz_set "server/hostname" "$default_hostname"
+		wiz_unseen "server/hostname"
+	fi
+
 	wiz_put "server/hostname"
 	if wiz_ask ; then
 		STATE="server_ssl"

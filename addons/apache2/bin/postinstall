@@ -98,9 +98,6 @@ enable_apache2_vhost_include() {
 
 configure_apache2_server() {
 	local web_hostname="$(wiz_get server/hostname)"
-	if [ -n "$web_hostname" ] ; then
-		web_hostname="$(hostname -f || hostname || echo "")"
-	fi
 	local web_ssl="$(wiz_get server/ssl)"
 	local web_ssl_cert="$(wiz_get server/ssl_cert)"
 	local web_ssl_key="$(wiz_get server/ssl_key)"

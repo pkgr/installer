@@ -11,8 +11,24 @@ set -o pipefail
 
 export INSTALLER_DIR=${INSTALLER_DIR:="${APP_HOME}/.pkgr/installer"}
 export DIALOG=${DIALOG:="dialog"}
-#export DIALOGRC="${INSTALLER_DIR}/debian.rc"
+export DIALOGRC="${INSTALLER_DIR}/debian.rc"
 export CLI="${APP_NAME}"
+
+unset WIZ_RECONFIGURE
+
+while [[ $# > 1 ]]
+do
+	key="$1"
+	shift
+
+	case $key in
+	    --reconfigure)
+	    export WIZ_RECONFIGURE="yes"
+	    ;;
+	    *)
+	    ;;
+	esac
+done
 
 echo "Launching installer for ${APP_NAME}..."
 

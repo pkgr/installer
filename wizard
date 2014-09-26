@@ -19,9 +19,16 @@
 set -e
 set -o pipefail
 
-wiz_buffer=""
+# list of questions which will be asked when callink wiz_ask
+WIZ_BUFFER=""
+# list of questions that will be forcibly asked again
+WIZ_UNSEEN=""
 DATABASE="${INSTALLER_DIR}/database"
 touch "${DATABASE}"
+# remove empty lines from file
+sed -i '/^$/d' "${DATABASE}"
+chown ${APP_USER}.${APP_GROUP} "${DATABASE}"
+
 INSTALLER_DEBUG=${INSTALLER_DEBUG:="no"}
 CURRENT_ADDON="$(dirname "$(cd "$(dirname "$0")" ; pwd)")"
 
@@ -51,12 +58,12 @@ wiz_random_password() {
 wiz_set() {
 	local key="$1"
 	local value="$2"
-	sed -i "s|${key}=.*||" "$DATABASE"
-	echo "${key}=${value}" >> "$DATABASE"
+	sed -i "s|${key} .*||" "$DATABASE"
+	echo "${key} ${value}" >> "$DATABASE"
 }
 
 wiz_ask() {
-	for question in $wiz_buffer ; do
+	for question in $WIZ_BUFFER ; do
 		wiz_debug "wiz_ask: ${question}"
 		if ! wiz_dialog "$question" ; then
 			wiz_clear
@@ -68,7 +75,7 @@ wiz_ask() {
 
 wiz_clear() {
 	wiz_debug "CLEAR"
-	wiz_buffer=""
+	WIZ_BUFFER=""
 }
 
 wiz_dialog() {
@@ -191,12 +198,29 @@ wiz_meta() {
 }
 
 wiz_put() {
-	wiz_buffer="$wiz_buffer $1"
+	local key="$1"
+	local unseen_without_key="${WIZ_UNSEEN[@]//$(echo -n "$key")/}"
+
+	if [ "$WIZ_RECONFIGURE" = "yes" ] ; then
+		# always put dialog if WIZ_RECONFIGURE is set
+		WIZ_BUFFER="$WIZ_BUFFER $key"
+	elif ! wiz_get "$key" ; then
+		# always put dialog if no existing value
+		WIZ_BUFFER="$WIZ_BUFFER $key"
+	elif [ ! "$WIZ_UNSEEN" = "$unseen_without_key" ] ; then
+		# question has been specifically marked as unseen, to be displayed again
+		WIZ_BUFFER="$WIZ_BUFFER $key"
+	fi
+}
+
+wiz_unseen() {
+	local key="$1"
+	WIZ_UNSEEN="$WIZ_UNSEEN ${key}"
 }
 
 wiz_get() {
 	local key="$1"
-	grep "$key=" "$DATABASE" | cut -f 2 -d "="
+	grep -e "^$key " "$DATABASE" | cut -f 2 -d " "
 }
 
 wiz_install_deb() {
@@ -255,23 +279,23 @@ wiz_fact() {
 }
 
 wiz_join() {
-  local IFS="$1"; shift; echo "$*";
+	local IFS="$1"; shift; echo "$*";
 }
 
 wiz_urlencode() {
-  # urlencode <string>
-  local length="${#1}"
-  for (( i = 0; i < length; i++ )); do
-    local c="${1:i:1}"
-    case $c in
-      [a-zA-Z0-9.~_-]) printf "$c" ;;
-      *) printf '%%%02X' "'$c"
-    esac
-  done
+	# urlencode <string>
+	local length="${#1}"
+	for (( i = 0; i < length; i++ )); do
+		local c="${1:i:1}"
+		case $c in
+			[a-zA-Z0-9.~_-]) printf "$c" ;;
+			*) printf '%%%02X' "'$c"
+		esac
+	done
 }
 
 wiz_urldecode() {
-  # urldecode <string>
-  local url_encoded="${1//+/ }"
-  printf '%b' "${url_encoded//%/\x}"
+	# urldecode <string>
+	local url_encoded="${1//+/ }"
+	printf '%b' "${url_encoded//%/\x}"
 }
