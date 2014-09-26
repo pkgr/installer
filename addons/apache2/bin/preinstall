@@ -17,6 +17,7 @@ install_apache2_server() {
 				chkconfig httpd on
 				service httpd start
 			fi
+			setsebool -P httpd_can_network_connect 1
 			;;
 	esac
 }

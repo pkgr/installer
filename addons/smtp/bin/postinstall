@@ -13,7 +13,7 @@ write_smtp_params() {
 	local smtp_username="$(wiz_get "smtp/username")"
 	local smtp_password="$(wiz_get "smtp/password")"
 	local smtp_domain="$(wiz_get "smtp/domain")"
-	local smtp_admin_email="$(wiz_get "smtp/admin_email")"
+	local admin_email="$(wiz_get "smtp/admin_email")"
 	# generate SMTP_URL, urlencode username and password
 	local smtp_url="smtp://$(wiz_urlencode "${smtp_username}"):$(wiz_urlencode "${smtp_password}")@${smtp_host}:${smtp_port}/${smtp_domain}"
 
@@ -31,7 +31,7 @@ write_smtp_params() {
 
 write_sendmail_params() {
 	local tmpfile=$(mktemp)
-	local smtp_admin_email="$(wiz_get "smtp/admin_email")"
+	local admin_email="$(wiz_get "smtp/admin_email")"
 	echo "export EMAIL_DELIVERY_METHOD=\"sendmail\"" > "$tmpfile"
 	echo "export ADMIN_EMAIL=\"${admin_email}\"" >> "$tmpfile"
 	mv -f "$tmpfile" "$OUTPUT"
