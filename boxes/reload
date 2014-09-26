@@ -1,0 +1,3 @@
+#!/bin/bash
+
+( cd boxes/$1 && vagrant reload )
