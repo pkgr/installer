@@ -34,8 +34,45 @@ echo "Launching installer for ${APP_NAME}..."
 
 echoerr() { echo "$@" 1>&2; }
 
+IFS=',' read -a ADDON_GROUPS <<< "$ADDONS"
+
+. "${INSTALLER_DIR}/wizard"
+
+SELECTED_ADDONS=()
+
+build_list_of_addons() {
+	local i=0
+	local addon_group
+	local addon
+
+	for (( i=0 ; i < ${#ADDON_GROUPS[@]} ; i++ )) ; do
+		addon_group="${ADDON_GROUPS[i]}"
+		echo "addon_group: ${addon_group}"
+		IFS='|' read -a addons <<< "$addon_group"
+
+		if [ ${#addons[@]} -gt 1 ] ; then
+			# choose between addons
+			joined_addons="$(wiz_join "_" "${addons[@]}")"
+			wiz_put "installer/select_${joined_addons}"
+			if wiz_ask ; then
+				addon="$(wiz_get  "installer/select_${joined_addons}")"
+				if [ "$addon" = "skip" ] ; then
+					echo "skipping"
+				else
+					SELECTED_ADDONS+=("$addon")
+				fi
+			else
+				echo "You must choose between $(wiz_join ", " "${addons[@]}") addons. Aborting."
+				exit 1
+			fi
+		else
+			SELECTED_ADDONS+=("${addons[0]}")
+		fi
+	done
+}
+
 for_each_addon() {
-	for addon in ${ADDONS}; do
+	for addon in ${SELECTED_ADDONS}; do
 		echoerr "[${addon}] $@"
 		( cd ${INSTALLER_DIR}/addons/${addon} && exec "$@" )
 	done
@@ -46,6 +83,9 @@ REQUIRED_DIRS="/etc/${APP_NAME}/conf.d /etc/${APP_NAME}/addons"
 for dir in $REQUIRED_DIRS ; do
 	mkdir -p "$dir" && chown ${APP_USER}.${APP_GROUP} "$dir"
 done
+
+build_list_of_addons
+echo "Selected addons: ${SELECTED_ADDONS[@]}"
 
 # execute configure scripts
 for_each_addon ./bin/configure
