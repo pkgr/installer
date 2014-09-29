@@ -5,3 +5,30 @@ set -ex
 ROOT_DIR=$(dirname $(dirname $0))
 
 find ${ROOT_DIR}/addons -type f -print0 | xargs -0 sed -i "s/_APP_NAME_/${APP_NAME}/g"
+
+IFS=',' read -a ADDON_GROUPS <<< "$ADDONS"
+
+rm -f "${ROOT_DIR}/templates"
+
+join() {
+	local IFS="$1"; shift; echo "$*";
+}
+
+for (( i=0 ; i < ${#ADDON_GROUPS[@]} ; i++ )) ; do
+	IFS='|' read -a addons <<< "${ADDON_GROUPS[i]}"
+
+	if [ ${#addons[@]} -gt 1 ] ; then
+		underscore_joined_addons="$(join "_" ${addons[@]})"
+		comma_joined_addons="$(join "," ${addons[@]})"
+
+		cat - <<TEMPLATE >> "${ROOT_DIR}/templates"
+Template: installer/select_${underscore_joined_addons}
+Type: select
+Choices: skip,${comma_joined_addons}
+Translations: skip,${comma_joined_addons}
+Default: ${addons[0]}
+Description: Which addon do you want to install?
+
+TEMPLATE
+	fi
+done
