@@ -23,11 +23,6 @@ set -o pipefail
 WIZ_BUFFER=""
 # list of questions that will be forcibly asked again
 WIZ_UNSEEN=""
-DATABASE="${INSTALLER_DIR}/database"
-touch "${DATABASE}"
-# remove empty lines from file
-sed -i '/^$/d' "${DATABASE}"
-chown ${APP_USER}.${APP_GROUP} "${DATABASE}"
 
 INSTALLER_DEBUG=${INSTALLER_DEBUG:="no"}
 CURRENT_ADDON="$(dirname "$(cd "$(dirname "$0")" ; pwd)")"
@@ -181,8 +176,8 @@ wiz_meta() {
 			echo "$description"
 			;;
 		"choices")
-			IFS=',' read -a choices <<< "$(sed -n -r 's|^Choices: (.+)$|\1|p' "$template" | sed -n -r 's|, |,|pg')"
-			IFS=',' read -a translations <<< "$(sed -n -r 's|^Translations: (.+)$|\1|p' "$template" | sed -n -r 's|, |,|pg')"
+			IFS=',' read -a choices <<< "$(sed -n -r 's|^Choices: (.+)$|\1|p' "$template" | sed -n -r 's|, ?|,|pg')"
+			IFS=',' read -a translations <<< "$(sed -n -r 's|^Translations: (.+)$|\1|p' "$template" | sed -n -r 's|, ?|,|pg')"
 
 			local result=""
 			for ((i=0 ; i < ${#choices[@]}; i++)) ; do

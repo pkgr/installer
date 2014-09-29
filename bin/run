@@ -13,6 +13,7 @@ export INSTALLER_DIR=${INSTALLER_DIR:="${APP_HOME}/.pkgr/installer"}
 export DIALOG=${DIALOG:="dialog"}
 export DIALOGRC="${INSTALLER_DIR}/debian.rc"
 export CLI="${APP_NAME}"
+export DATABASE="${DATABASE:="/etc/${APP_NAME}/installer.dat"}"
 
 unset WIZ_RECONFIGURE
 
@@ -35,6 +36,12 @@ echo "Launching installer for ${APP_NAME}..."
 echoerr() { echo "$@" 1>&2; }
 
 IFS=',' read -a ADDON_GROUPS <<< "$ADDONS"
+
+touch "${DATABASE}"
+# remove empty lines from file
+sed -i '/^$/d' "${DATABASE}"
+chown ${APP_USER}.${APP_GROUP} "${DATABASE}"
+chmod 0640 "${DATABASE}"
 
 . "${INSTALLER_DIR}/wizard"
 
