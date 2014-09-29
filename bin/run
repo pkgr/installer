@@ -42,13 +42,12 @@ SELECTED_ADDONS=()
 
 build_list_of_addons() {
 	local i=0
-	local addon_group
+	local addons
+	local joined_addons
 	local addon
 
 	for (( i=0 ; i < ${#ADDON_GROUPS[@]} ; i++ )) ; do
-		addon_group="${ADDON_GROUPS[i]}"
-		echo "addon_group: ${addon_group}"
-		IFS='|' read -a addons <<< "$addon_group"
+		IFS='|' read -a addons <<< "${ADDON_GROUPS[i]}"
 
 		if [ ${#addons[@]} -gt 1 ] ; then
 			# choose between addons
@@ -62,7 +61,7 @@ build_list_of_addons() {
 					SELECTED_ADDONS+=("$addon")
 				fi
 			else
-				echo "You must choose between $(wiz_join ", " "${addons[@]}") addons. Aborting."
+				echo "You must choose between $(wiz_join "," "${addons[@]}") addons. Aborting."
 				exit 1
 			fi
 		else
@@ -85,7 +84,7 @@ for dir in $REQUIRED_DIRS ; do
 done
 
 build_list_of_addons
-echo "Selected addons: ${SELECTED_ADDONS[@]}"
+echoerr "Selected addons: ${SELECTED_ADDONS[@]}"
 
 # execute configure scripts
 for_each_addon ./bin/configure
