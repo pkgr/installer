@@ -9,7 +9,7 @@ set -o pipefail
 : ${APP_USER:?"Needs to set APP_USER"}
 : ${APP_GROUP:?"Needs to set APP_GROUP"}
 
-export INSTALLER_DIR=${INSTALLER_DIR:="${APP_HOME}/.pkgr/installer"}
+export INSTALLER_DIR=${INSTALLER_DIR:="/usr/share/${APP_NAME}/installer"}
 export DIALOG=${DIALOG:="dialog"}
 export DIALOGRC="${INSTALLER_DIR}/debian.rc"
 export CLI="${APP_NAME}"
