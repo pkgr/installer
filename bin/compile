@@ -6,7 +6,7 @@ ROOT_DIR=$(dirname $(dirname $0))
 
 find ${ROOT_DIR}/addons -type f -print0 | xargs -0 sed -i "s/_APP_NAME_/${APP_NAME}/g"
 
-IFS=',' read -a ADDON_GROUPS <<< "$APP_ADDONS"
+IFS=',' read -a ADDON_GROUPS <<< "$APP_WIZARDS"
 
 rm -f "${ROOT_DIR}/templates"
 

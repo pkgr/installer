@@ -35,7 +35,7 @@ echo "Launching installer for ${APP_NAME}..."
 
 echoerr() { echo "$@" 1>&2; }
 
-IFS=',' read -a ADDON_GROUPS <<< "$ADDONS"
+IFS=',' read -a ADDON_GROUPS <<< "$APP_WIZARDS"
 
 touch "${DATABASE}"
 # remove empty lines from file
