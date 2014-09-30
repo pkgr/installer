@@ -17,7 +17,7 @@ export DATABASE="${DATABASE:="/etc/${APP_NAME}/installer.dat"}"
 
 unset WIZ_RECONFIGURE
 
-while [[ $# > 1 ]]
+while [ $# -gt 0 ]
 do
 	key="$1"
 	shift
