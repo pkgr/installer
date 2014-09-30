@@ -85,7 +85,11 @@ wiz_dialog() {
 	case "$kind" in
 		"select")
 			local choices=$(wiz_meta "$key" "choices")
-			local cmd="$DIALOG --stdout --no-tags --clear --title \"$key\" --default-item \"${default}\" --menu \"$description\n\n$title\" 0 0 4 $choices"
+			local args=""
+			if [ "$(wiz_fact "osfamily")" = "redhat" ] ; then
+				args="${args} --no-tags"
+			fi
+			local cmd="$DIALOG --stdout ${args} --clear --title \"$key\" --default-item \"${default}\" --menu \"$description\n\n$title\" 0 0 4 $choices"
 			wiz_debug "cmd=${cmd}"
 			result=$(eval $cmd)
 			status=$?
