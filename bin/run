@@ -1,5 +1,3 @@
-#!/bin/bash
-
 set -e
 set -o pipefail
 
@@ -78,7 +76,7 @@ build_list_of_addons() {
 }
 
 for_each_addon() {
-	for addon in ${SELECTED_ADDONS}; do
+	for addon in ${SELECTED_ADDONS[@]}; do
 		echoerr "[${addon}] $@"
 		( cd ${INSTALLER_DIR}/addons/${addon} && exec "$@" )
 	done
