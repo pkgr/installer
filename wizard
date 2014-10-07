@@ -19,13 +19,14 @@
 set -e
 set -o pipefail
 
-# list of questions which will be asked when callink wiz_ask
+# list of questions which will be asked when calling wiz_ask
 WIZ_BUFFER=""
 # list of questions that will be forcibly asked again
 WIZ_UNSEEN=""
 
 INSTALLER_DEBUG=${INSTALLER_DEBUG:="no"}
 CURRENT_ADDON="$(dirname "$(cd "$(dirname "$0")" ; pwd)")"
+declare -A WIZ_STATES_QUESTIONS
 
 wiz_debug() {
 	if [ ! "${INSTALLER_DEBUG}" = "no" ]; then
@@ -38,11 +39,23 @@ wizard() {
 	while true; do
 		wiz_debug "STATE=$STATE OLDSTATE=$OLDSTATE"
 		OLDSTATE="$STATE"
+		_wiz_reset "$STATE"
 		state_machine "$STATE"
 		if [ "$OLDSTATE" = "$STATE" ]; then
 			STATE="same-state"
 		fi
 	done
+}
+
+# Makes all questions asked during this state as unseen again.
+# This is usually called when the user goes back to a state that has already been seen.
+_wiz_reset() {
+	local state="$1"
+	wiz_debug "state=$state state_buffer=${WIZ_STATES_QUESTIONS["$state"]}"
+	for question in ${WIZ_STATES_QUESTIONS["$state"]} ; do
+		wiz_unseen "$question"
+	done
+	WIZ_STATES_QUESTIONS["$state"]=""
 }
 
 wiz_random_password() {
@@ -53,14 +66,15 @@ wiz_random_password() {
 wiz_set() {
 	local key="$1"
 	local value="$2"
+	wiz_debug "wiz_set key=$key value=$value"
 	sed -i "s|${key} .*||" "$DATABASE"
 	echo "${key} ${value}" >> "$DATABASE"
 }
 
 wiz_ask() {
+	wiz_debug "wiz_ask"
 	for question in $WIZ_BUFFER ; do
-		wiz_debug "wiz_ask: ${question}"
-		if ! wiz_dialog "$question" ; then
+		if ! wiz_dialog "$question" &>/dev/null ; then
 			wiz_clear
 			return 1;
 		fi
@@ -69,7 +83,7 @@ wiz_ask() {
 }
 
 wiz_clear() {
-	wiz_debug "CLEAR"
+	wiz_debug "wiz_clear"
 	WIZ_BUFFER=""
 }
 
@@ -80,7 +94,7 @@ wiz_dialog() {
 	local description=$(wiz_meta "$key" "description")
 	local default=$(wiz_get "$key" || wiz_meta "$key" "default")
 
-	wiz_debug "key=$key type=${kind} default=${default} title=${title} description=${description}"
+	wiz_debug "wiz_dialog key=$key type=${kind} default=${default} title=${title} description=${description}"
 
 	case "$kind" in
 		"select")
@@ -147,8 +161,7 @@ wiz_template() {
 wiz_meta() {
 	local key="$1"
 	local attribute="$2"
-	wiz_debug "key: $key"
-	wiz_debug "attribute: ${attribute}"
+	wiz_debug "wiz_meta key=$key property=${attribute}"
 	IFS='/' read -a array <<< "$key"
 	local addon="${array[0]}"
 	local tmpdir=$(mktemp -d)
@@ -197,13 +210,15 @@ wiz_meta() {
 }
 
 wiz_put() {
+	wiz_debug "wiz_put"
 	local key="$1"
 	local unseen_without_key="${WIZ_UNSEEN[@]//$(echo -n "$key")/}"
+	WIZ_STATES_QUESTIONS["$STATE"]="${WIZ_STATES_QUESTIONS["$STATE"]} $key"
 
 	if [ "$WIZ_RECONFIGURE" = "yes" ] ; then
 		# always put dialog if WIZ_RECONFIGURE is set
 		WIZ_BUFFER="$WIZ_BUFFER $key"
-	elif ! wiz_get "$key" ; then
+	elif ! wiz_get "$key" &>/dev/null ; then
 		# always put dialog if no existing value
 		WIZ_BUFFER="$WIZ_BUFFER $key"
 	elif [ ! "$WIZ_UNSEEN" = "$unseen_without_key" ] ; then
@@ -219,6 +234,7 @@ wiz_unseen() {
 
 wiz_get() {
 	local key="$1"
+	wiz_debug "wiz_get"
 	grep -e "^$key " "$DATABASE" | cut -f 2 -d " "
 }
 
