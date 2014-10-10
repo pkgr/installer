@@ -3,7 +3,7 @@
 DIR=$(dirname "$0")
 
 . ${DIR}/assert.sh
-. ${INSTALLER_DIR}/wizard
+. $(dirname "$DIR")/wizard
 
 wiz_template() {
 	echo "${DIR}/fixtures/templates"

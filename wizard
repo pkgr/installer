@@ -1,4 +1,7 @@
 #!/bin/bash
+# Helper functions used to interact with the installer database.
+# You should source it in your programs:
+# 	. /path/to/wizard
 
 : ${DIALOG=dialog}
 
@@ -82,11 +85,17 @@ wiz_ask() {
 	wiz_clear
 }
 
+# Clear the buffer of questions
 wiz_clear() {
 	wiz_debug "wiz_clear"
 	WIZ_BUFFER=""
 }
 
+# Triggers the display of a new dialog
+# Returns 0 if success, 1 if user canceled
+# e.g.:
+#
+# 	wiz_dialog("mysql/db_host")
 wiz_dialog() {
 	local key="$1"
 	local kind=$(wiz_meta "$key" "type")
@@ -153,11 +162,15 @@ wiz_dialog() {
 	esac
 }
 
-# Given a configuration key, it returns the path to the template file
+# Returns the path to the current wizard's "templates" file.
 wiz_template() {
 	echo "${CURRENT_ADDON}/templates"
 }
 
+# Fetch a property from a quesion from the "templates" file.
+# Outputs the result on STDOUT.
+# e.g.
+# 	wiz_meta("mysql/db_host", "description")
 wiz_meta() {
 	local key="$1"
 	local attribute="$2"
@@ -209,6 +222,7 @@ wiz_meta() {
 	esac
 }
 
+# Puts a question on the buffer of questions to be asked.
 wiz_put() {
 	wiz_debug "wiz_put"
 	local key="$1"
@@ -227,15 +241,23 @@ wiz_put() {
 	fi
 }
 
+# Sets the question as unseen, meaning it will be displayed event it has already been answered.
 wiz_unseen() {
 	local key="$1"
 	WIZ_UNSEEN="$WIZ_UNSEEN ${key}"
 }
 
+# Fetch the value currently stored for a property.
+# Returns 0 if a value exists (including empty string), and outputs it on STDOUT.
+# Returns 1 if no value has been registered yet.
 wiz_get() {
 	local key="$1"
 	wiz_debug "wiz_get"
-	grep -e "^$key " "$DATABASE" | cut -f 2 -d " "
+	if grep -e "^$key " "$DATABASE" &>/dev/null ; then
+		sed -n -r "s|^$key (.+)$|\1|p" "$DATABASE"
+	else
+		return 1
+	fi
 }
 
 wiz_install_deb() {
@@ -280,6 +302,10 @@ wiz_check_package() {
 	esac
 }
 
+# Returns facts about the underlying OS.
+# e.g.:
+#
+# 	wiz_fact "osfamily"
 wiz_fact() {
 	local key="$1"
 	case "$key" in
