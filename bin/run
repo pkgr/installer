@@ -11,7 +11,7 @@ set -o pipefail
 
 export INSTALLER_DIR=${INSTALLER_DIR:="/usr/share/${APP_NAME}/installer"}
 export DIALOG=${DIALOG:="dialog"}
-export DIALOGRC="${INSTALLER_DIR}/debian.rc"
+#export DIALOGRC="${INSTALLER_DIR}/debian.rc"
 export CLI="${APP_NAME}"
 export DATABASE="${DATABASE:="/etc/${APP_NAME}/installer.dat"}"
 

@@ -77,7 +77,7 @@ wiz_set() {
 wiz_ask() {
 	wiz_debug "wiz_ask"
 	for question in $WIZ_BUFFER ; do
-		if ! wiz_dialog "$question" &>/dev/null ; then
+		if ! wiz_dialog "$question" ; then
 			wiz_clear
 			return 1;
 		fi
@@ -109,9 +109,6 @@ wiz_dialog() {
 		"select")
 			local choices=$(wiz_meta "$key" "choices")
 			local args=""
-			if [ "$(wiz_fact "osfamily")" = "redhat" ] ; then
-				args="${args} --no-tags"
-			fi
 			local cmd="$DIALOG --stdout ${args} --clear --title \"$key\" --default-item \"${default}\" --menu \"$description\n\n$title\" 0 0 4 $choices"
 			wiz_debug "cmd=${cmd}"
 			result=$(eval $cmd)
