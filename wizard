@@ -290,7 +290,7 @@ wiz_check_package() {
 		"debian")
 			dpkg -s "$1" &>/dev/null
 			;;
-		"redhat")
+		"redhat"|"suse")
 			rpm -qa "$1" | grep -q "$1"
 			;;
 		*)
@@ -309,6 +309,8 @@ wiz_fact() {
 		"osfamily")
 			if [ -f /etc/debian_version ]; then
 				echo "debian"
+			elif [ -f /etc/SuSE-release ]; then
+				echo "suse"
 			elif [ -f /etc/redhat-release ]; then
 				echo "redhat"
 			fi
