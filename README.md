@@ -193,3 +193,11 @@ Helper function used to URL encode a given string.
 ```bash
 wiz_urlencode "mysql://user:pass@host:port/dbname?hello=world"
 ```
+
+## Available addons
+
+* https://github.com/pkgr/addon-rails4 - General addon for Rails4 apps.
+* https://github.com/pkgr/addon-mysql - Addon for configuring a MySQL server and database.
+* https://github.com/pkgr/addon-smtp - Addon for configuring SMTP settings or sendmail.
+* https://github.com/pkgr/addon-memcached - Addon for setting up a memcached server.
+* https://github.com/pkgr/addon-apache2 - Addon for setting up an Apache2 server, including SSL.
