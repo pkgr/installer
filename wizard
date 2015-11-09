@@ -29,7 +29,20 @@ WIZ_UNSEEN=""
 
 INSTALLER_DEBUG=${INSTALLER_DEBUG:="no"}
 CURRENT_ADDON="$(dirname "$(cd "$(dirname "$0")" ; pwd)")"
-declare -A WIZ_STATES_QUESTIONS
+
+hinit() {
+	rm -f /tmp/hashmap.$1
+}
+
+hput() {
+    echo "$2 $3" >> /tmp/hashmap.$1
+}
+
+hget() {
+    grep "^$2 " /tmp/hashmap.$1 | awk '{ print $2 };'
+}
+
+hinit WIZ_STATES_QUESTIONS
 
 wiz_debug() {
 	if [ ! "${INSTALLER_DEBUG}" = "no" ]; then
@@ -54,11 +67,11 @@ wizard() {
 # This is usually called when the user goes back to a state that has already been seen.
 _wiz_reset() {
 	local state="$1"
-	wiz_debug "state=$state state_buffer=${WIZ_STATES_QUESTIONS["$state"]}"
-	for question in ${WIZ_STATES_QUESTIONS["$state"]} ; do
+	wiz_debug "state=$state state_buffer=$(hget WIZ_STATES_QUESTIONS "$state")"
+	for question in $(hget WIZ_STATES_QUESTIONS "$state") ; do
 		wiz_unseen "$question"
 	done
-	WIZ_STATES_QUESTIONS["$state"]=""
+	hput WIZ_STATES_QUESTIONS "$state" ""
 }
 
 wiz_random_password() {
@@ -231,7 +244,7 @@ wiz_put() {
 	wiz_debug "wiz_put"
 	local key="$1"
 	local unseen_without_key="${WIZ_UNSEEN[@]//$(echo -n "$key")/}"
-	WIZ_STATES_QUESTIONS["$STATE"]="${WIZ_STATES_QUESTIONS["$STATE"]} $key"
+	hput WIZ_STATES_QUESTIONS "$STATE" "$(hget WIZ_STATES_QUESTIONS "$STATE") $key"
 
 	if [ "$WIZ_RECONFIGURE" = "yes" ] ; then
 		# always put dialog if WIZ_RECONFIGURE is set
