@@ -74,6 +74,13 @@ wiz_set() {
 	echo "${key} ${value}" >> "$DATABASE"
 }
 
+wiz_get_or_set() {
+	local key="$1"
+	local value="$2"
+	wiz_debug "wiz_get_or_set key=$key value=$value"
+	wiz_get "$key" &>/dev/null || wiz_set "$key" "$value"
+}
+
 wiz_ask() {
 	wiz_debug "wiz_ask"
 	for question in $WIZ_BUFFER ; do
