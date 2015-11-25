@@ -32,6 +32,7 @@ CURRENT_ADDON="$(dirname "$(cd "$(dirname "$0")" ; pwd)")"
 
 hinit() {
 	rm -f /tmp/hashmap.$1
+	touch /tmp/hashmap.$1
 }
 
 hput() {
