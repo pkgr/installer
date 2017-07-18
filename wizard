@@ -122,9 +122,9 @@ wiz_dialog() {
 	local kind=$(wiz_meta "$key" "type")
 	local title=$(wiz_meta "$key" "title")
 	local description=$(wiz_meta "$key" "description")
-	local default=$(wiz_get "$key" || wiz_meta "$key" "default")
+	local default="$(wiz_get "$key" || wiz_meta "$key" "default")"
 
-	wiz_debug "wiz_dialog key=$key type=${kind} default=${default} title=${title} description=${description}"
+	wiz_debug "wiz_dialog key='$key' type='${kind}' default='${default}' title='${title}' description='${description}'"
 
 	case "$kind" in
 		"select")
@@ -146,7 +146,7 @@ wiz_dialog() {
 		"password")
 			local cmd="$DIALOG --stdout --clear --title \"$key\" --insecure --passwordbox \"$description\n\n$title\" 16 51"
 			wiz_debug "cmd=${cmd}"
-			result=$(eval $cmd)
+			result="$(eval $cmd)"
 			status=$?
 			# defaults to existing password if none given
 			if [ $status -eq 0 ] && [ "$result" = "" ]; then
