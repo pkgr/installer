@@ -309,7 +309,7 @@ wiz_install() {
 wiz_check_package() {
 	case $(wiz_fact "osfamily") in
 		"debian")
-			dpkg -s "$1" &>/dev/null
+			apt-cache show "$1" &>/dev/null
 			;;
 		"redhat"|"suse")
 			rpm -qa "$1" | grep -q "$1"
