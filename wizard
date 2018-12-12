@@ -270,7 +270,7 @@ wiz_unseen() {
 # Returns 1 if no value has been registered yet.
 wiz_get() {
 	local key="$1"
-	wiz_debug "wiz_get"
+	wiz_debug "wiz_get $key"
 	if grep -e "^$key " "$DATABASE" &>/dev/null ; then
 		sed -n -r "s|^$key (.+)$|\1|p" "$DATABASE"
 	else
@@ -336,6 +336,10 @@ wiz_fact() {
 				echo "redhat"
 			fi
 			;;
+		"osversion")
+			( . /etc/os-release ; printf '%s' "$VERSION_ID" )
+			;;
+
 	esac
 }
 
