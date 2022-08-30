@@ -79,8 +79,10 @@ build_list_of_addons() {
 
 for_each_addon() {
 	for addon in ${SELECTED_ADDONS[@]}; do
-		echoerr "[${addon}] $@"
-		( cd ${INSTALLER_DIR}/addons/${addon} && exec "$@" )
+		if [ -d "${INSTALLER_DIR}/addons/${addon}" ]; then
+			echoerr "[${addon}] $@" 
+			( cd ${INSTALLER_DIR}/addons/${addon} && exec "$@" )
+		fi
 	done
 }
 
