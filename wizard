@@ -332,6 +332,9 @@ wiz_fact() {
 				echo "debian"
 			elif [ -f /etc/SuSE-release ]; then
 				echo "suse"
+			# sles15
+			elif [ -f /etc/SUSE-brand ]; then
+				echo "suse"
 			elif [ -f /etc/redhat-release ]; then
 				echo "redhat"
 			fi
