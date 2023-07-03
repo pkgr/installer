@@ -225,7 +225,7 @@ wiz_meta() {
 			;;
 		"choices")
 			IFS=',' read -a choices <<< "$(sed -n -r 's|^Choices: (.+)$|\1|p' "$template" | sed -n -r 's|, ?|,|pg')"
-			IFS=',' read -a translations <<< "$(sed -n -r 's|^Translations: (.+)$|\1|p' "$template" | sed -n -r 's|, ?|,|pg')"
+			IFS=',' read -a translations <<< "$(sed -n -r 's|^Translations: (.+)|\1|p' "$template" | sed -n -r 's|, ?|,|pg')"
 
 			local result=""
 			for ((i=0 ; i < ${#choices[@]}; i++)) ; do
