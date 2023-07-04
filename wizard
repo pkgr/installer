@@ -220,8 +220,7 @@ wiz_meta() {
 			sed -n -r 's|^Default: (.+)$|\1|p' "$template"
 			;;
 		"description")
-			local description=$(grep -e "^\s" "$template" | xargs echo | sed -n -r "s| \. |\n|p")
-			echo "$description"
+			grep -e "^\s" "$template" | sed -r "s|^ \.\s*$|%NEWLINE%|g" | xargs echo | sed -r "s| ?%NEWLINE% |\\\n|g"
 			;;
 		"choices")
 			IFS=',' read -a choices <<< "$(sed -n -r 's|^Choices: (.+)$|\1|p' "$template" | sed -n -r 's|, ?|,|pg')"
