@@ -259,7 +259,7 @@ wiz_put() {
 	fi
 }
 
-# Sets the question as unseen, meaning it will be displayed event it has already been answered.
+# Sets the question as unseen, meaning it will be displayed even if it has been answered already.
 wiz_unseen() {
 	local key="$1"
 	WIZ_UNSEEN="$WIZ_UNSEEN ${key}"
