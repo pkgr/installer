@@ -319,6 +319,30 @@ wiz_check_package() {
 	esac
 }
 
+wiz_service_start() {
+	if which systemctl &>/dev/null ; then
+		systemctl start "$1"
+	else
+		service "$1" start
+	fi
+}
+
+wiz_service_restart() {
+	if which systemctl &>/dev/null ; then
+		systemctl restart "$1"
+	else
+		service "$1" restart
+	fi
+}
+
+wiz_service_enable() {
+	if which systemctl &>/dev/null ; then
+		systemctl enable "$1"
+	elif which chkconfig &>/dev/null ; then
+		chkconfig "$1" on
+	fi
+}
+
 # Returns facts about the underlying OS.
 # e.g.:
 #
