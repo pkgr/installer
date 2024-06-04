@@ -8,7 +8,7 @@ The design is inspired from the debconf tool, used on debian-based systems, but 
 
 It is a simple collection of bash scripts used to iteratively launch the `configure`, `preinstall`, and `postinstall` steps of wizard **addons**.
 
-Addons do what's needed to configure and install specific system depencies for the package that is currently being configured. For instance, a GitLab package may use an installer that depends on an `apache2` and `mysql` wizard addons.
+Addons do what's needed to configure and install specific system dependencies for the package that is currently being configured. For instance, a GitLab package may use an installer that depends on an `apache2` and `mysql` wizard addons.
 
 The installer provides shell functions that abstract the setting/retrieval of configuration entries, and also displays interactive questions to the user.
 
@@ -133,6 +133,8 @@ wiz_meta "mysql/db_host" "default" # => 127.0.0.1
 wiz_meta "mysql/db_host" "type" # => string
 ```
 
+It's possible to override a template based on the value of the key. For instance, if the user has already set the value `skip` for `mysql/autoinstall`, then the template `mysql/autoinstall=skip` will be looked up first, and then `mysql/autoinstall` will be looked up. This allows for more dynamic templates based on the previous user's input.
+
 ### `wiz_put`
 
 Adds a question to the buffer of questions to be asked.
@@ -201,3 +203,14 @@ wiz_urlencode "mysql://user:pass@host:port/dbname?hello=world"
 * https://github.com/pkgr/addon-smtp - Addon for configuring SMTP settings or sendmail.
 * https://github.com/pkgr/addon-memcached - Addon for setting up a memcached server.
 * https://github.com/pkgr/addon-apache2 - Addon for setting up an Apache2 server, including SSL.
+
+## Testing
+
+Tests are located in the `test` folder. To run them:
+
+```bash
+test/wiz_get.sh
+test/wiz_meta.sh
+```
+
+Set `DEBUG=1` to have a more verbose output.
