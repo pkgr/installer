@@ -185,7 +185,7 @@ wiz_template() {
 	echo "${CURRENT_ADDON}/templates"
 }
 
-# Fetch a property from a quesion from the "templates" file.
+# Fetch a property from a question from the "templates" file.
 # Outputs the result on STDOUT.
 # e.g.
 # 	wiz_meta("mysql/db_host", "description")
@@ -195,17 +195,28 @@ wiz_meta() {
 	wiz_debug "wiz_meta key=$key property=${attribute}"
 	IFS='/' read -a array <<< "$key"
 	local addon="${array[0]}"
+	local value=$(wiz_get "$key")
 	local tmpdir=$(mktemp -d)
 	local addon_templates=$(wiz_template "${addon}")
 
 	csplit -zs -f ${tmpdir}/item "$addon_templates" /^Template:/ {*}
 	local template=""
-	for file in ${tmpdir}/item* ; do
-		if grep -q "Template: ${key}" ${file} ; then
-			template="$file"
-			break
-		fi
-	done
+	if [ -n "$value" ] ; then
+		for file in ${tmpdir}/item* ; do
+			if grep -q "Template: ${key}=${value}" ${file} ; then
+				template="$file"
+				break
+			fi
+		done
+	fi
+	if [ -z "$template" ] ; then
+		for file in ${tmpdir}/item* ; do
+			if grep -q "Template: ${key}" ${file} ; then
+				template="$file"
+				break
+			fi
+		done
+	fi
 
 	if [ -z "$template" ] ; then exit 1 ; fi
 
@@ -220,7 +231,7 @@ wiz_meta() {
 			sed -n -r 's|^Default: (.+)$|\1|p' "$template"
 			;;
 		"description")
-			grep -e "^\s" "$template" | sed -r "s|^ \.\s*$|%NEWLINE%|g" | xargs echo | sed -r "s| ?%NEWLINE% |\\\n|g"
+			grep -e "^\s" "$template" | sed -r "s|^ \.\s*$|%NEWLINE%|g" | xargs echo | sed -r "s| ?%NEWLINE% |\\\n\\\n|g"
 			;;
 		"choices")
 			IFS=',' read -a choices <<< "$(sed -n -r 's|^Choices: (.+)$|\1|p' "$template" | sed -n -r 's|, ?|,|pg')"
